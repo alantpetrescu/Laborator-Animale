@@ -43,7 +43,8 @@ public:
 
     virtual void citire(istream& in){
         if(typeid(in) == typeid(ifstream)){
-            in >> nume >> varsta >> masa >> inaltime >> viteza;
+            getline(in, nume);
+            in >> varsta >> masa >> inaltime >> viteza;
             int nrCaracteristici;
 
             in >> nrCaracteristici;
@@ -57,7 +58,8 @@ public:
             }
         }else{
             cout << "Nume: ";
-            in >> nume;
+            getline(in, nume);
+            getline(in, nume);
             cout << "varsta: ";
             in >> varsta;
             cout << "masa: ";
@@ -73,10 +75,11 @@ public:
 
             caracteristici.clear();
 
-            cout << "Caracteristicile (cate una pe o linie): \n";
-            for(int i = 0; i < nrCaracteristici; i++){
-                string x;
+            string x;
 
+            getline(in, x);
+            for(int i = 0; i < nrCaracteristici; i++){
+                cout << "Caracteristica #" << i << ": ";
                 getline(in, x);
                 caracteristici.emplace_back(x);
             }
@@ -92,7 +95,7 @@ public:
         out << "Nr. caracteristici: ";
 
         int nrCaracteristici = caracteristici.size();
-        out << nrCaracteristici;
+        out << nrCaracteristici << '\n';
 
         cout << "Caracteristicile (cate una pe o linie): \n";
         for(int i = 0; i < nrCaracteristici; i++)
@@ -186,10 +189,10 @@ public:
 
 class Lup: public Pradator{
 protected:
-    list<Lup*> haita;
+    list<string> haita;
 public:
     Lup(){}
-    Lup(string nume, int varsta, float masa, float inaltime, int viteza, vector<string> caracteristici, int dangerLevel, list<Lup*> haita):
+    Lup(string nume, int varsta, float masa, float inaltime, int viteza, vector<string> caracteristici, int dangerLevel, list<string> haita):
         Pradator(nume, varsta, masa, inaltime, viteza, caracteristici, dangerLevel), haita(haita){}
     Lup(const Lup& lup):
         Pradator(lup.nume, lup.varsta, lup.masa, lup.inaltime, lup.viteza, lup.caracteristici, lup.dangerLevel),
@@ -209,17 +212,40 @@ public:
         return *this;
     }
 
+    void adaugaLaHaita(Lup* lup){
+        try{
+            bool semafor = 1;
+
+            for(auto x = haita.begin(); semafor && x != haita.end(); ++x)
+                if((*x) == lup->nume)
+                    semafor = 0;
+
+            if(!semafor)
+                throw(lup->nume);
+            else
+                haita.push_back(lup->nume);
+        }catch(string nume){
+            cout << "Lupul " << nume << " este deja in haita!\n";
+        }
+    }
+
     int vaneaza(){
-        return (haita.size() + 1) * 2;
+        return haita.size() * 2;
     }
 
     int eAlintat(){
-        return 100 / (haita.size() + 1);
+        return 100 / haita.size();
     }
 
     void combinaHaita(Lup& altLup){
+        cout << *haita.begin() << '\n';
+        cout << *altLup.haita.begin() << '\n';
         haita.merge(altLup.haita);
+        for (auto it = haita.begin(); it != haita.end(); ++it)
+            cout << *it << "\n";
         altLup.haita = this->haita;
+        for (auto it = altLup.haita.begin(); it != altLup.haita.end(); ++it)
+            cout << *it << "\n";
     }
 
     void citire(istream& in){
@@ -238,8 +264,31 @@ public:
         out << "Lupul gasit este: \n";
         Animal::afisare(out);
         out << "Danger level-ul este: " << dangerLevel << '\n';
-        out << "Numarul de lupi din haita este: " << haita.size() << '\n';
-        cout << "\n\n";
+        out << "Numarul de lupi din haita lupului " << nume << " este: " << haita.size() << '\n';
+        out << "Lupii din haita fiind: ";
+
+        if(haita.size() == 1)
+            out << (*haita.begin());
+        else if(haita.size() == 2)
+            out << *haita.begin() << " , " << *(++haita.begin());
+        else{
+            out << *haita.begin() << " , ";
+
+            list<string>::iterator i = haita.begin(), j = haita.end();
+            i++;
+            j--;
+            j--;
+
+            while(i != j){
+                out << (*i) << ", ";
+                i++;
+            }
+
+            if(haita.size() > 1)
+                out << (*i);
+        }
+
+        cout << "\n\n\n";
     }
 
     friend istream& operator >>(istream& in, Lup& lup){
@@ -281,6 +330,11 @@ public:
     }
 
     string getNume() const { return nume; }
+
+    void adaugaAvarie(string textAvarie, float pretAvarie){
+        assert(stricaciuni.find(textAvarie) == stricaciuni.end());
+        stricaciuni[textAvarie] = pretAvarie;
+    }
 
     friend istream& operator >> (istream& in, Jucarie& jucarie){
         if(typeid(in) == typeid(ifstream)){
@@ -337,7 +391,7 @@ public:
     }
 };
 
-template<class T = bool>
+template<class T = int>
 class Caine: public Pradator{
 protected:
     set<Jucarie, SorterJucarie> jucarii;
@@ -366,9 +420,25 @@ public:
         return *this;
     }
 
+    void setPedigree(T pedigree) { this->pedigree = pedigree; }
+
     void adaugaJucarie(const Jucarie& jucarie){
         assert(jucarii.find(jucarie) == jucarii.end());
         jucarii.insert(jucarie);
+    }
+
+    void stergeJucarie(const Jucarie& jucarie){
+        assert(jucarii.find(jucarie) != jucarii.end());
+        jucarii.erase(jucarie);
+    }
+
+    void adaugaAvarieLaJucarie(Jucarie& jucarie, string textAvarie, float pretAvarie){
+        assert(jucarii.find(jucarie) != jucarii.end());
+        try{
+            jucarie.adaugaAvarie(textAvarie, pretAvarie);
+        }catch(exception e){
+            cout << "Avaria exista deja pe jucarie!\n";
+        }
     }
 
     int vaneaza(){
@@ -422,10 +492,6 @@ public:
     }
 };
 
-template<> int Caine<bool>::eAlintat(){
-    return pedigree;
-}
-
 template<> int Caine<int>::eAlintat(){
     return pedigree;
 }
@@ -443,14 +509,14 @@ template<> int Caine<string>::eAlintat(){
 
 class Menu{
 private:
-    static Menu* menu;
+    static Menu* object;
     Menu(){}
 public:
     static Menu* getInstance(){
-        if(!menu)
-            menu = new Menu;
+        if(!object)
+            object = new Menu();
 
-        return menu;
+        return object;
     }
 
     void showMenu(){
@@ -458,26 +524,28 @@ public:
 
         int stop = 0;
 
+        cin.exceptions(istream::failbit);
         while(!stop){
             cout << "Buna ziua! Bine ati venit la Laboratorul Animalelor! Va rog alegeti una din optiuniel de mai jos\n";
             cout << "--------------------------------------------------------------------------------------------------\n";
-            cout << "0. Exit!";
+            cout << "0. Exit!\n";
             cout << "1. Adaugati un lup!\n";
-            cout << "2. Afisati informatii despre un lup dupa nume!\n";
-            cout << "3. Stergeti un lup dupa nume!\n";
+            cout << "2. Stergeti un lup dupa nume!\n";
+            cout << "3. Afisati informatii despre un lup dupa nume!\n";
             cout << "4. Afisati informatii despre totii lupii de pana acum!\n";
             cout << "5. Creste un lup dupa nume!\n";
             cout << "6. Uneste haitele a doi lupi dupa nume!\n";
             cout << "7. Adaugati un caine!\n";
-            cout << "8. Afisati informatii despre un caine dupa nume!\n";
-            cout << "9. Stergeti un caine dupa nume!\n";
+            cout << "8. Stergeti un caine dupa nume!\n";
+            cout << "9. Afisati informatii despre un caine dupa nume!\n";
             cout << "10. Afisati informatii despre totii cainii de pana acum!\n";
             cout << "11. Creste un caine dupa nume!\n";
             cout << "12. Adauga o jucarie la un caine!\n";
             cout << "13. Sterge o jucarie de la un caine!\n";
             cout << "14. Adauga o avarie la o jucarie a unui caine!\n";
-            cout << "15. Afiseaza informatii despre toate jucariile detinute de catre un caine dupa nume!\n";
-            cout << "16. Compara doua animale dupa nume!\n";
+            cout << "--------------------------------------------------------------------------------------------------\n";
+           // cout << "15. Afiseaza informatii despre toate jucariile detinute de catre un caine dupa nume!\n";
+           // cout << "16. Compara doua animale dupa nume!\n";
             cout << "Optiunea aleasa este: ";
 
             int choice;
@@ -494,46 +562,61 @@ public:
                 cin >> *newLup;
 
                 try{
-                    assert(lupi.find(newLup) == lupi.end());
+                    if(lupi.find(newLup) != lupi.end())
+                        throw(newLup->getNume());
 
+                    dynamic_cast<Lup*>(newLup)->adaugaLaHaita(dynamic_cast<Lup*>(newLup));
                     lupi.insert(newLup);
-                }catch(exception e){
-                    cout << "Lupul cu numele acesta exista deja in baza de date!\n";
+                }catch(string nume){
+                    cout << "Lupul " << nume << " exista deja in baza de date!\n";
                     cout << "Va rugam sa alegeti altceva!\n";
                 }
 
                 break;
             }
             case 2:{
-                cout << "Numele lupului pe care doriti sa-l stergeti: \n";
+                cout << "Numele lupului pe care doriti sa-l stergeti: ";
                 string numeLup;
-                cin >> numeLup;
+                getline(cin, numeLup);
+                getline(cin, numeLup);
 
                 Lup* lupAux = new Lup;
                 lupAux->setNume(numeLup);
                 try{
                     auto lupGasit = lupi.find(lupAux);
-                    cout << *lupGasit << '\n';
-                }catch(exception e){
+
+                    if(lupGasit == lupi.end())
+                        throw(numeLup);
+
+                    cout << **lupGasit << '\n';
+                    lupi.erase(lupGasit);
+
+                    cout << "Lupul " << numeLup << " a fost sters din baza de date!\n";
+                }catch(string x){
                     cout << "Lupul cu numele acesta nu exista in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
             }
             case 3:{
-                cout << "Numele lupului despre care doresti sa aflii informatii: \n";
+                cout << "Numele lupului despre care doresti sa aflii informatii: ";
                 string numeLup;
-                cin >> numeLup;
+                getline(cin, numeLup);
+                getline(cin, numeLup);
 
                 Lup* lupAux = new Lup;
                 lupAux->setNume(numeLup);
                 try{
                     auto lupGasit = lupi.find(lupAux);
-                    lupi.erase(lupGasit);
-                }catch(exception e){
+
+                    if(lupGasit == lupi.end())
+                        throw(numeLup);
+
+                    cout << **lupGasit;
+                }catch(string x){
                     cout << "Lupul cu numele acesta nu exista in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -550,18 +633,24 @@ public:
                 }
             }
             case 5:{
-                cout << "Numele lupului pe care doriti sa-l cresteti: \n";
+                cout << "Numele lupului pe care doriti sa-l cresteti: ";
                 string numeLup;
-                cin >> numeLup;
+                getline(cin, numeLup);
+                getline(cin, numeLup);
 
                 Lup* lupAux = new Lup;
                 lupAux->setNume(numeLup);
                 try{
                     auto lupGasit = lupi.find(lupAux);
+
+                    if(lupGasit == lupi.end())
+                        throw(numeLup);
+
                     (*lupGasit)->creste();
+                    cout << "Lupul " << numeLup << " tocmai a crescut!\n\n\n";
                 }catch(exception e){
                     cout << "Lupul cu numele acesta nu exista in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -569,21 +658,33 @@ public:
             case 6:{
                 string numeLup1, numeLup2;
 
-                cout << "Numele primului lup: \n";
-                cin >> numeLup1;
+                cout << "Numele primului lup: ";
+                getline(cin, numeLup1);
+                getline(cin, numeLup1);
 
-                cout << "Numele celui de-al doilea lup: \n";
-                cin >> numeLup2;
+                cout << "Numele celui de-al doilea lup: ";
+                getline(cin, numeLup2);
 
                 Lup* lupAux1 = new Lup, *lupAux2 = new Lup;
                 lupAux1->setNume(numeLup1);
                 lupAux2->setNume(numeLup2);
                 try{
                     auto lupGasit1 = lupi.find(lupAux1), lupGasit2 = lupi.find(lupAux2);
+
+                    if(lupGasit1 == lupi.end())
+                        throw(0);
+                    else if(lupGasit2 == lupi.end())
+                        throw(1);
+
                     dynamic_cast<Lup*>(*lupGasit1)->combinaHaita(*dynamic_cast<Lup*>(*lupGasit2));
-                }catch(exception e){
-                    cout << "Unul din cei doi lupi nu exista!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                    cout << "Haitele celor doi lupi au s-au contopit!\n\n\n";
+                }catch(int care){
+                    if(care == 0)
+                        cout << "Primul lup n-a fost gasit!\n";
+                    else
+                        cout << "Al doilea lup n-a fost gasit!\n";
+
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -591,38 +692,37 @@ public:
             case 7:{
                 cout << "Intai de toate, spuneti-ne pedigree-ul: ";
 
-                bool eBool, eInt, eString;
-                Caine<bool>* boolCaine = new Caine<bool>;
+                bool eInt, eString;
                 Caine<int>* intCaine = new Caine<int>;
                 Caine<string>* stringCaine = new Caine<string>;
                 Animal* newCaine;
 
-                eBool = eInt = eString = 1;
+                eInt = eString = 1;
 
                 try{
-                    bool pedigree;
-
-                    cin >> pedigree;
-                }catch(exception e){
-                    eBool = 0;
-                    int pedigree;
-
-                    cin >> pedigree;
-                }catch(exception e){
-                    eInt = 0;
                     string pedigree;
 
                     getline(cin, pedigree);
-                }catch(exception e){
-                    cout << "Ceva a merst prost!\n";
-                    cout << "Incercati o alta optiune!\n";
+                    getline(cin, pedigree);
 
-                    break;
+                    int nr = 0;
+
+                    for(auto x : pedigree)
+                        if(x < '0' || x > '9')
+                            throw(0);
+                        else
+                            nr = nr * 10 + x - '0';
+
+                    intCaine->setPedigree(nr);
+                }catch(int x){
+                    eInt = 0;
+                    string pedigree;
+
+
+                    stringCaine->setPedigree(pedigree);
                 }
 
-                if(eBool)
-                    newCaine = boolCaine;
-                else if(eInt)
+                if(eInt)
                     newCaine = intCaine;
                 else
                     newCaine = stringCaine;
@@ -630,12 +730,13 @@ public:
                 cin >> *newCaine;
 
                 try{
-                    assert(caini.find(newCaine) == caini.end());
+                    if(caini.find(newCaine) != caini.end())
+                        throw(newCaine->getNume());
 
                     caini.insert(newCaine);
-                }catch(exception e){
-                    cout << "Cainele cu numele acesta exista deja in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                }catch(string nume){
+                    cout << "Cainele " << nume << "exista deja in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -643,31 +744,30 @@ public:
             case 8:{
                 cout << "Numele cainelui pe care doriti sa-l stergeti: \n";
                 string numeCaine;
-                cin >> numeCaine;
+                getline(cin, numeCaine);
+                getline(cin, numeCaine);
 
-                Caine<bool>* boolCaine = new Caine<bool>;
                 Caine<int>* intCaine = new Caine<int>;
                 Caine<string>* stringCaine = new Caine<string>;
 
-                boolCaine->setNume(numeCaine);
                 intCaine->setNume(numeCaine);
                 stringCaine->setNume(numeCaine);
 
                 try{
-                    auto caineBoolGasit = caini.find(boolCaine);
                     auto caineIntGasit = caini.find(intCaine);
                     auto caineStringGasit = caini.find(stringCaine);
-                    assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+                    if(caineIntGasit == caini.end() && caineStringGasit == caini.end())
+                        throw(numeCaine);
 
-                    if(caineBoolGasit != caini.end())
-                        caini.erase(caineBoolGasit);
-                    else if(caineIntGasit != caini.end())
+                    if(caineIntGasit != caini.end())
                         caini.erase(caineIntGasit);
                     else
                         caini.erase(caineStringGasit);
-                }catch(exception e){
-                    cout << "Cainele cu numele acesta nu exista in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+
+                    cout << "Cainele a fost sters cu succes!\n\n\n";
+                }catch(string nume){
+                    cout << "Cainele " << nume <<  "nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -675,32 +775,29 @@ public:
             case 9:{
                 cout << "Numele cainelui despre care doriti sa aflati informatii: \n";
                 string numeCaine;
-                cin >> numeCaine;
+                getline(cin, numeCaine);
+                getline(cin, numeCaine);
 
-                Caine<bool>* boolCaine = new Caine<bool>;
                 Caine<int>* intCaine = new Caine<int>;
                 Caine<string>* stringCaine = new Caine<string>;
 
-                boolCaine->setNume(numeCaine);
                 intCaine->setNume(numeCaine);
                 stringCaine->setNume(numeCaine);
 
                 try{
-                    auto caineBoolGasit = caini.find(boolCaine);
                     auto caineIntGasit = caini.find(intCaine);
                     auto caineStringGasit = caini.find(stringCaine);
 
-                    assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+                    if(caineIntGasit == caini.end() && caineStringGasit == caini.end())
+                        throw(numeCaine);
 
-                    if(caineBoolGasit != caini.end())
-                        cout << **caineBoolGasit << '\n';
-                    else if(caineIntGasit != caini.end())
+                    if(caineIntGasit != caini.end())
                         cout << **caineIntGasit << '\n';
                     else
                         cout << **caineStringGasit << '\n';
-                }catch(exception e){
-                    cout << "Cainele cu numele acesta nu exista in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                }catch(string nume){
+                    cout << "Cainele " << nume << "nu exista in baza  de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -719,32 +816,29 @@ public:
             case 11:{
                 cout << "Numele cainelui pe care doriti sa-l cresteti: \n";
                 string numeCaine;
-                cin >> numeCaine;
+                getline(cin, numeCaine);
+                getline(cin, numeCaine);
 
-                Caine<bool>* boolCaine = new Caine<bool>;
                 Caine<int>* intCaine = new Caine<int>;
                 Caine<string>* stringCaine = new Caine<string>;
 
-                boolCaine->setNume(numeCaine);
                 intCaine->setNume(numeCaine);
                 stringCaine->setNume(numeCaine);
 
                 try{
-                    auto caineBoolGasit = caini.find(boolCaine);
                     auto caineIntGasit = caini.find(intCaine);
                     auto caineStringGasit = caini.find(stringCaine);
 
-                    assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+                    if(caineIntGasit == caini.end() && caineStringGasit == caini.end())
+                        throw(numeCaine);
 
-                    if(caineBoolGasit != caini.end())
-                        (*caineBoolGasit)->creste();
-                    else if(caineIntGasit != caini.end())
+                    if(caineIntGasit != caini.end())
                         (*caineIntGasit)->creste();
                     else
                         (*caineStringGasit)->creste();
-                }catch(exception e){
-                    cout << "Cainele cu numele acesta nu exista in baza de date!\n";
-                    cout << "Va rugam sa alegeti altceva!\n";
+                }catch(string nume){
+                    cout << "Cainele " << nume << "nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n\n\n";
                 }
 
                 break;
@@ -756,54 +850,150 @@ public:
 
                 cout << "Numele cainelui la care vreti sa adaugati jucaria: ";
                 string numeCaine;
-                cin >> numeCaine;
+                getline(cin, numeCaine);
+                getline(cin, numeCaine);
 
-                Caine<bool>* boolCaine = new Caine<bool>;
                 Caine<int>* intCaine = new Caine<int>;
                 Caine<string>* stringCaine = new Caine<string>;
 
-                boolCaine->setNume(numeCaine);
                 intCaine->setNume(numeCaine);
                 stringCaine->setNume(numeCaine);
 
                 try{
                     try{
-                        auto caineBoolGasit = caini.find(boolCaine);
                         auto caineIntGasit = caini.find(intCaine);
                         auto caineStringGasit = caini.find(stringCaine);
 
-                        assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+                        assert(caineIntGasit != caini.end() || caineStringGasit != caini.end());
                     }catch(exception e){
                         cout << "Cainele cautat nu exista!\n";
                         cout << "Incercati alta optiune!\n";
                     }
 
-                    auto caineBoolGasit = caini.find(boolCaine);
                     auto caineIntGasit = caini.find(intCaine);
                     auto caineStringGasit = caini.find(stringCaine);
 
-                    if(caineBoolGasit != caini.end())
-                        dynamic_cast<Caine<bool>*>(*caineBoolGasit)->adaugaJucarie(jucarie);
-                    else if(caineIntGasit != caini.end())
+                    if(caineIntGasit != caini.end())
                         dynamic_cast<Caine<int>*>(*caineIntGasit)->adaugaJucarie(jucarie);
                     else
                         dynamic_cast<Caine<string>*>(*caineStringGasit)->adaugaJucarie(jucarie);
                 }catch(exception e){
                     cout << "Jucaria pe care vrei s-o adaugi exista deja pentru caine\n";
-                    cout << "Incercati alta optiune!\n";
+                    cout << "Incercati alta optiune!\n\n\n";
                 }
 
                 break;
             }
             case 13:{
+                Jucarie jucarie;
 
+                cin >> jucarie;
+
+                cout << "Numele cainelui de la care vrei sa stergi jucaria: ";
+                string numeCaine;
+                getline(cin, numeCaine);
+                getline(cin, numeCaine);
+
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+
+                intCaine->setNume(numeCaine);
+                stringCaine->setNume(numeCaine);
+
+                try{
+                    try{
+                        auto caineIntGasit = caini.find(intCaine);
+                        auto caineStringGasit = caini.find(stringCaine);
+
+                        if(caineIntGasit == caini.end() && caineStringGasit == caini.end())
+                            throw(numeCaine);
+                    }catch(string nume){
+                        cout << "Cainele " << nume << "nu exista!\n";
+                        cout << "Incercati alta optiune!\n";
+                    }
+
+                    auto caineIntGasit = caini.find(intCaine);
+                    auto caineStringGasit = caini.find(stringCaine);
+
+                    if(caineIntGasit != caini.end())
+                        dynamic_cast<Caine<int>*>(*caineIntGasit)->stergeJucarie(jucarie);
+                    else
+                        dynamic_cast<Caine<string>*>(*caineStringGasit)->stergeJucarie(jucarie);
+                }catch(exception e){
+                    cout << "Jucaria pe care vrei s-o adaugi nu exista pentru caine\n";
+                    cout << "Incercati alta optiune!\n\n\n";
+                }
+
+                break;
+            }
+            case 14:{
+                Jucarie jucarie;
+
+                cin >> jucarie;
+
+                cout << "Numele cainelui de la care vrei sa stergi jucaria: ";
+                string numeCaine;
+                getline(cin, numeCaine);
+                getline(cin, numeCaine);
+
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+
+                intCaine->setNume(numeCaine);
+                stringCaine->setNume(numeCaine);
+
+                try{
+                    auto caineIntGasit = caini.find(intCaine);
+                    auto caineStringGasit = caini.find(stringCaine);
+
+                    if(caineIntGasit == caini.end() && caineStringGasit != caini.end())
+                        throw(numeCaine);
+                }catch(string nume){
+                    cout << "Cainele " << nume << "nu exista!\n";
+                    cout << "Incercati alta optiune!\n\n\n";
+                }
+
+                auto caineIntGasit = caini.find(intCaine);
+                auto caineStringGasit = caini.find(stringCaine);
+
+                if(caineIntGasit != caini.end()){
+                    cout << "Avaria pe care vrei s-o adaugi(text): ";
+                    string textAvarie;
+                    cin >> textAvarie;
+
+                    cout << "Pretul repararii avariei(float): ";
+                    float pretAvarie;
+                    cin >> pretAvarie;
+
+                    dynamic_cast<Caine<int>*>(*caineIntGasit)->adaugaAvarieLaJucarie(jucarie, textAvarie, pretAvarie);
+                }
+                else if(caineStringGasit != caini.end()){
+                    cout << "Avaria pe care vrei s-o adaugi(text): ";
+                    string textAvarie;
+                    cin >> textAvarie;
+
+                    cout << "Pretul repararii avariei(float): ";
+                    float pretAvarie;
+                    cin >> pretAvarie;
+
+                    dynamic_cast<Caine<string>*>(*caineStringGasit)->adaugaAvarieLaJucarie(jucarie, textAvarie, pretAvarie);
+                }
+
+                break;
+            }
+            default:
+                cout << "Aceasta optiune nu exista!\n\n\n";
             }
         }
     }
 };
 
-Menu* Menu::menu = NULL;
+Menu* Menu::object = 0;
 
 int main(){
+    Menu* menu = Menu::getInstance();
 
+    menu->showMenu();
+
+    return 0;
 }
