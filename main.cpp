@@ -28,6 +28,9 @@ public:
         return *this;
     }
 
+    string getNume() const { return nume; }
+    void setNume(string nume) { this->nume = nume; }
+
     virtual void cresteMasa() = 0;
     virtual void cresteInaltime() = 0;
     virtual void cresteViteza() = 0;
@@ -155,7 +158,6 @@ public:
             Animal::citire(in);
             in >> dangerLevel;
         }else{
-            cout << "Pradatorul citit este: \n";
             Animal::citire(in);
             cout << "Danger level-ul este: ";
             in >> dangerLevel;
@@ -164,7 +166,6 @@ public:
     }
 
     void afisare(ostream& out){
-        out << "Pradatorul gasit este: \n";
         Animal::afisare(out);
         out << "Danger level-ul este: ";
         out << dangerLevel << "\n\n\n";
@@ -214,6 +215,11 @@ public:
 
     int eAlintat(){
         return 100 / (haita.size() + 1);
+    }
+
+    void combinaHaita(Lup& altLup){
+        haita.merge(altLup.haita);
+        altLup.haita = this->haita;
     }
 
     void citire(istream& in){
@@ -317,7 +323,14 @@ public:
     }
 };
 
-class Sorter{
+class SorterAnimale{
+public:
+    bool operator() (const Animal* a, const Animal* b) const {
+        return a->getNume() < b->getNume();
+    }
+};
+
+class SorterJucarie{
 public:
     bool operator() (const Jucarie& a, const Jucarie& b) const {
         return a.getNume() < b.getNume();
@@ -327,12 +340,12 @@ public:
 template<class T = bool>
 class Caine: public Pradator{
 protected:
-    set<Jucarie, Sorter> jucarii;
+    set<Jucarie, SorterJucarie> jucarii;
     T pedigree;
 public:
     Caine(){}
     Caine(string nume, int varsta, float masa, float inaltime, int viteza, vector<string> caracteristici, int dangerLevel, list<Lup*> haita,
-        set<Jucarie, Sorter> jucarii, T pedigree):
+        set<Jucarie, SorterJucarie> jucarii, T pedigree):
         Pradator(nume, varsta, masa, inaltime, viteza, caracteristici, dangerLevel), jucarii(jucarii), pedigree(pedigree){}
     Caine(const Caine& caine):
         Pradator(caine.nume, caine.varsta, caine.masa, caine.inaltime, caine.viteza, caine.caracteristici, caine.dangerLevel),
@@ -353,6 +366,11 @@ public:
         return *this;
     }
 
+    void adaugaJucarie(const Jucarie& jucarie){
+        assert(jucarii.find(jucarie) == jucarii.end());
+        jucarii.insert(jucarie);
+    }
+
     int vaneaza(){
         return 3;
     }
@@ -367,17 +385,24 @@ public:
             Animal::citire(in);
             cout << "Danger level-ul este: ";
             in >> dangerLevel;
-            cout << "Pedigree-ul este: ";
-            in >> pedigree;
         }
     }
 
     void afisare(ostream& out){
-        out << "Lupul gasit este: \n";
+        out << "Cainele gasit este: \n";
         Animal::afisare(out);
-        out << "Danger level-ul este: ";
-        out << dangerLevel << "\n";
-        cout << "Numar jucarii este: " << jucarii.size() << "\n\n\n";
+        out << "Danger level-ul este: " << dangerLevel << '\n';
+        out << "Pedigree-ul: " << pedigree << '\n';
+        if(jucarii.size() == 0)
+            out << "Nici-o jucarie pentru aceste caine\n\n\n";
+        else{
+            out << "Numar jucarii este: " << jucarii.size() << "\n";
+
+            for(auto x : jucarii)
+                out << x;
+
+            out << "\n\n";
+        }
     }
 
     friend istream& operator >>(istream& in, Caine& caine){
@@ -429,12 +454,7 @@ public:
     }
 
     void showMenu(){
-        set<Animal, Sorter> animals;
-        set<Pradator, Sorter> predators;
-        set<Lup, Sorter> lupi;
-        set<Caine<bool>, Sorter> cainiBool;
-        set<Caine<int>, Sorter> cainiInt;
-        set<Caine<string>, Sorter> cainiString;
+        set<Animal*, SorterAnimale> lupi, caini;
 
         int stop = 0;
 
@@ -442,30 +462,22 @@ public:
             cout << "Buna ziua! Bine ati venit la Laboratorul Animalelor! Va rog alegeti una din optiuniel de mai jos\n";
             cout << "--------------------------------------------------------------------------------------------------\n";
             cout << "0. Exit!";
-            cout << "1. Adaugati un animal neidentificat!\n";
-            cout << "2. Afisati informatii despre un animal neidentificat dupa nume!\n";
-            cout << "3. Stergeti un animal neidentificat dupa nume!\n";
-            cout << "4. Afisati informatii despre toate animalele neidentificate de pana acum!\n";
-            cout << "5. Adaugati un pradator!\n";
-            cout << "6. Afisati informatii despre un pradator dupa nume!\n";
-            cout << "7. Stergeti un pradator dupa nume!\n";
-            cout << "8. Afisati informatii despre totii pradatorii de pana acum!\n";
-            cout << "9. Creste un animal dupa nume!\n";
-            cout << "10. Adaugati un lup!\n";
-            cout << "11. Afisati informatii despre un lup dupa nume!\n";
-            cout << "12. Stergeti un lup dupa nume!\n";
-            cout << "13. Afisati informatii despre totii lupii de pana acum!\n";
-            cout << "14. Creste un lup dupa nume!\n";
-            cout << "15. Uneste haitele a doi lupi dupa nume!\n";
-            cout << "16. Adaugati un caine!\n";
-            cout << "17. Afisati informatii despre un caine dupa nume!\n";
-            cout << "18. Stergeti un caine dupa nume!\n";
-            cout << "19. Afisati informatii despre totii cainii de pana acum!\n";
-            cout << "20. Creste un caine dupa nume!\n";
-            cout << "21. Adauga o jucarie la un caine!\n";
-            cout << "22. Sterge o jucarie de la un caine!\n";
-            cout << "23. Adauga o avarie la o jucarie a unui caine!\n";
-            cout << "24. Afiseaza informatii despre toate jucariile detinute de catre un caine dupa nume!\n";
+            cout << "1. Adaugati un lup!\n";
+            cout << "2. Afisati informatii despre un lup dupa nume!\n";
+            cout << "3. Stergeti un lup dupa nume!\n";
+            cout << "4. Afisati informatii despre totii lupii de pana acum!\n";
+            cout << "5. Creste un lup dupa nume!\n";
+            cout << "6. Uneste haitele a doi lupi dupa nume!\n";
+            cout << "7. Adaugati un caine!\n";
+            cout << "8. Afisati informatii despre un caine dupa nume!\n";
+            cout << "9. Stergeti un caine dupa nume!\n";
+            cout << "10. Afisati informatii despre totii cainii de pana acum!\n";
+            cout << "11. Creste un caine dupa nume!\n";
+            cout << "12. Adauga o jucarie la un caine!\n";
+            cout << "13. Sterge o jucarie de la un caine!\n";
+            cout << "14. Adauga o avarie la o jucarie a unui caine!\n";
+            cout << "15. Afiseaza informatii despre toate jucariile detinute de catre un caine dupa nume!\n";
+            cout << "16. Compara doua animale dupa nume!\n";
             cout << "Optiunea aleasa este: ";
 
             int choice;
@@ -476,54 +488,315 @@ public:
             case 0:
                 stop = 1;
                 break;
-            case 1:
+            case 1:{
+                Animal* newLup = static_cast<Animal*>(new Lup);
+
+                cin >> *newLup;
+
+                try{
+                    assert(lupi.find(newLup) == lupi.end());
+
+                    lupi.insert(newLup);
+                }catch(exception e){
+                    cout << "Lupul cu numele acesta exista deja in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 2:
+            }
+            case 2:{
+                cout << "Numele lupului pe care doriti sa-l stergeti: \n";
+                string numeLup;
+                cin >> numeLup;
+
+                Lup* lupAux = new Lup;
+                lupAux->setNume(numeLup);
+                try{
+                    auto lupGasit = lupi.find(lupAux);
+                    cout << *lupGasit << '\n';
+                }catch(exception e){
+                    cout << "Lupul cu numele acesta nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 3:
+            }
+            case 3:{
+                cout << "Numele lupului despre care doresti sa aflii informatii: \n";
+                string numeLup;
+                cin >> numeLup;
+
+                Lup* lupAux = new Lup;
+                lupAux->setNume(numeLup);
+                try{
+                    auto lupGasit = lupi.find(lupAux);
+                    lupi.erase(lupGasit);
+                }catch(exception e){
+                    cout << "Lupul cu numele acesta nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 4:
+            }
+            case 4:{
+                if(lupi.size() == 0)
+                    cout << "Nu exista nici un lup in baza de date!\n";
+                else{
+                    cout << "Afisam informatiile despre totii lupii din baza de date\n";
+                    for(auto lup : lupi)
+                        cout << *lup << '\n';
+
+                    break;
+                }
+            }
+            case 5:{
+                cout << "Numele lupului pe care doriti sa-l cresteti: \n";
+                string numeLup;
+                cin >> numeLup;
+
+                Lup* lupAux = new Lup;
+                lupAux->setNume(numeLup);
+                try{
+                    auto lupGasit = lupi.find(lupAux);
+                    (*lupGasit)->creste();
+                }catch(exception e){
+                    cout << "Lupul cu numele acesta nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 5:
+            }
+            case 6:{
+                string numeLup1, numeLup2;
+
+                cout << "Numele primului lup: \n";
+                cin >> numeLup1;
+
+                cout << "Numele celui de-al doilea lup: \n";
+                cin >> numeLup2;
+
+                Lup* lupAux1 = new Lup, *lupAux2 = new Lup;
+                lupAux1->setNume(numeLup1);
+                lupAux2->setNume(numeLup2);
+                try{
+                    auto lupGasit1 = lupi.find(lupAux1), lupGasit2 = lupi.find(lupAux2);
+                    dynamic_cast<Lup*>(*lupGasit1)->combinaHaita(*dynamic_cast<Lup*>(*lupGasit2));
+                }catch(exception e){
+                    cout << "Unul din cei doi lupi nu exista!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 6:
+            }
+            case 7:{
+                cout << "Intai de toate, spuneti-ne pedigree-ul: ";
+
+                bool eBool, eInt, eString;
+                Caine<bool>* boolCaine = new Caine<bool>;
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+                Animal* newCaine;
+
+                eBool = eInt = eString = 1;
+
+                try{
+                    bool pedigree;
+
+                    cin >> pedigree;
+                }catch(exception e){
+                    eBool = 0;
+                    int pedigree;
+
+                    cin >> pedigree;
+                }catch(exception e){
+                    eInt = 0;
+                    string pedigree;
+
+                    getline(cin, pedigree);
+                }catch(exception e){
+                    cout << "Ceva a merst prost!\n";
+                    cout << "Incercati o alta optiune!\n";
+
+                    break;
+                }
+
+                if(eBool)
+                    newCaine = boolCaine;
+                else if(eInt)
+                    newCaine = intCaine;
+                else
+                    newCaine = stringCaine;
+
+                cin >> *newCaine;
+
+                try{
+                    assert(caini.find(newCaine) == caini.end());
+
+                    caini.insert(newCaine);
+                }catch(exception e){
+                    cout << "Cainele cu numele acesta exista deja in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 7:
+            }
+            case 8:{
+                cout << "Numele cainelui pe care doriti sa-l stergeti: \n";
+                string numeCaine;
+                cin >> numeCaine;
+
+                Caine<bool>* boolCaine = new Caine<bool>;
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+
+                boolCaine->setNume(numeCaine);
+                intCaine->setNume(numeCaine);
+                stringCaine->setNume(numeCaine);
+
+                try{
+                    auto caineBoolGasit = caini.find(boolCaine);
+                    auto caineIntGasit = caini.find(intCaine);
+                    auto caineStringGasit = caini.find(stringCaine);
+                    assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+
+                    if(caineBoolGasit != caini.end())
+                        caini.erase(caineBoolGasit);
+                    else if(caineIntGasit != caini.end())
+                        caini.erase(caineIntGasit);
+                    else
+                        caini.erase(caineStringGasit);
+                }catch(exception e){
+                    cout << "Cainele cu numele acesta nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 8:
+            }
+            case 9:{
+                cout << "Numele cainelui despre care doriti sa aflati informatii: \n";
+                string numeCaine;
+                cin >> numeCaine;
+
+                Caine<bool>* boolCaine = new Caine<bool>;
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+
+                boolCaine->setNume(numeCaine);
+                intCaine->setNume(numeCaine);
+                stringCaine->setNume(numeCaine);
+
+                try{
+                    auto caineBoolGasit = caini.find(boolCaine);
+                    auto caineIntGasit = caini.find(intCaine);
+                    auto caineStringGasit = caini.find(stringCaine);
+
+                    assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+
+                    if(caineBoolGasit != caini.end())
+                        cout << **caineBoolGasit << '\n';
+                    else if(caineIntGasit != caini.end())
+                        cout << **caineIntGasit << '\n';
+                    else
+                        cout << **caineStringGasit << '\n';
+                }catch(exception e){
+                    cout << "Cainele cu numele acesta nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 9:
+            }
+            case 10:{
+                if(caini.size() == 0)
+                    cout << "Nu exista nici un caine in baza de date!\n";
+                else{
+                    cout << "Afisam informatiile despre totii cainii din baza de date\n";
+                    for(auto caine : caini)
+                        cout << *caine << '\n';
+
+                    break;
+                }
+            }
+            case 11:{
+                cout << "Numele cainelui pe care doriti sa-l cresteti: \n";
+                string numeCaine;
+                cin >> numeCaine;
+
+                Caine<bool>* boolCaine = new Caine<bool>;
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+
+                boolCaine->setNume(numeCaine);
+                intCaine->setNume(numeCaine);
+                stringCaine->setNume(numeCaine);
+
+                try{
+                    auto caineBoolGasit = caini.find(boolCaine);
+                    auto caineIntGasit = caini.find(intCaine);
+                    auto caineStringGasit = caini.find(stringCaine);
+
+                    assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+
+                    if(caineBoolGasit != caini.end())
+                        (*caineBoolGasit)->creste();
+                    else if(caineIntGasit != caini.end())
+                        (*caineIntGasit)->creste();
+                    else
+                        (*caineStringGasit)->creste();
+                }catch(exception e){
+                    cout << "Cainele cu numele acesta nu exista in baza de date!\n";
+                    cout << "Va rugam sa alegeti altceva!\n";
+                }
+
                 break;
-            case 10:
+            }
+            case 12:{
+                Jucarie jucarie;
+
+                cin >> jucarie;
+
+                cout << "Numele cainelui la care vreti sa adaugati jucaria: ";
+                string numeCaine;
+                cin >> numeCaine;
+
+                Caine<bool>* boolCaine = new Caine<bool>;
+                Caine<int>* intCaine = new Caine<int>;
+                Caine<string>* stringCaine = new Caine<string>;
+
+                boolCaine->setNume(numeCaine);
+                intCaine->setNume(numeCaine);
+                stringCaine->setNume(numeCaine);
+
+                try{
+                    try{
+                        auto caineBoolGasit = caini.find(boolCaine);
+                        auto caineIntGasit = caini.find(intCaine);
+                        auto caineStringGasit = caini.find(stringCaine);
+
+                        assert(caineBoolGasit != caini.end() || caineIntGasit != caini.end() || caineStringGasit != caini.end());
+                    }catch(exception e){
+                        cout << "Cainele cautat nu exista!\n";
+                        cout << "Incercati alta optiune!\n";
+                    }
+
+                    auto caineBoolGasit = caini.find(boolCaine);
+                    auto caineIntGasit = caini.find(intCaine);
+                    auto caineStringGasit = caini.find(stringCaine);
+
+                    if(caineBoolGasit != caini.end())
+                        dynamic_cast<Caine<bool>*>(*caineBoolGasit)->adaugaJucarie(jucarie);
+                    else if(caineIntGasit != caini.end())
+                        dynamic_cast<Caine<int>*>(*caineIntGasit)->adaugaJucarie(jucarie);
+                    else
+                        dynamic_cast<Caine<string>*>(*caineStringGasit)->adaugaJucarie(jucarie);
+                }catch(exception e){
+                    cout << "Jucaria pe care vrei s-o adaugi exista deja pentru caine\n";
+                    cout << "Incercati alta optiune!\n";
+                }
+
                 break;
-            case 11:
-                break;
-            case 12:
-                break;
-            case 13:
-                break;
-            case 14:
-                break;
-            case 15:
-                break;
-            case 16:
-                break;
-            case 17:
-                break;
-            case 18:
-                break;
-            case 19:
-                break;
-            case 20:
-                break;
-            case 21:
-                break;
-            case 22:
-                break;
-            case 23:
-                break;
-            case 24:
-                break;
+            }
+            case 13:{
+
             }
         }
     }
